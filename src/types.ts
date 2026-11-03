@@ -1,0 +1,119 @@
+/**
+ * Shared types for the whole app.
+ * Owner: Person 1. Change only through a PR that the other three review,
+ * because every other file depends on these.
+ */
+
+// ---------------------------------------------------------------------------
+// Graphs (Person 1)
+// ---------------------------------------------------------------------------
+
+export interface Point {
+  x: number
+  y: number
+}
+
+export interface Graph {
+  id: string
+  title: string
+  xLabel: string
+  yLabel: string
+  /** Unit suffix for display, e.g. "°F" or "$". */
+  unit?: string
+  /** Optional labels for the x axis, index-aligned with `points` (e.g. month names). */
+  xLabels?: string[]
+  points: Point[]
+}
+
+// ---------------------------------------------------------------------------
+// Sonification protocol (Person 2)
+// ---------------------------------------------------------------------------
+
+export interface ProtocolOptions {
+  /** Total length of the audio clip in milliseconds. */
+  durationMs: number
+  /** Lowest MIDI note allowed (the "comfortable range" floor). 48 = C3. */
+  lowestMidi: number
+  /** Highest MIDI note allowed (the "comfortable range" ceiling). 84 = C6. */
+  highestMidi: number
+  /** Fraction of each note slot left silent so repeated notes are distinct. */
+  gapRatio: number
+  /**
+   * Data units per whole step. Leave undefined to let the protocol pick a
+   * "nice" value (1, 2, 2.5, 5 × 10^k) that fits the graph in range.
+   */
+  unitsPerWholeStep?: number
+}
+
+export const DEFAULT_OPTIONS: ProtocolOptions = {
+  durationMs: 6000,
+  lowestMidi: 48, // C3
+  highestMidi: 84, // C6
+  gapRatio: 0.1,
+}
+
+export interface Anchor {
+  value: number
+  midi: number
+  /** Scientific pitch name, e.g. "F#4". */
+  name: string
+}
+
+export interface Note {
+  /** Index of the data point this note represents. */
+  index: number
+  value: number
+  midi: number
+  name: string
+  startMs: number
+  durationMs: number
+}
+
+/** The preamble (trough / peak / start / step) plus the note sequence. */
+export interface Sonification {
+  graphId: string
+  durationMs: number
+  trough: Anchor
+  peak: Anchor
+  start: Anchor
+  unitsPerWholeStep: number
+  notes: Note[]
+}
+
+// ---------------------------------------------------------------------------
+// Questions and quiz (Person 3)
+// ---------------------------------------------------------------------------
+
+export interface Question {
+  id: string
+  /** Which graph the listener hears before answering. */
+  graphId: string
+  prompt: string
+  choices: string[]
+  /** Index into `choices`. */
+  correctIndex: number
+  /** Shown on the reveal screen after answering. */
+  explanation?: string
+}
+
+export interface AnswerRecord {
+  questionId: string
+  /** Index into the question's `choices`, or null if skipped. */
+  chosenIndex: number | null
+  correct: boolean
+}
+
+export interface QuizResult {
+  answers: AnswerRecord[]
+  correct: number
+  total: number
+}
+
+// ---------------------------------------------------------------------------
+// Lesson flow (Person 4)
+// ---------------------------------------------------------------------------
+
+export type LessonPhase =
+  | { kind: 'intro' }
+  | { kind: 'question'; index: number; stage: 'listen' | 'answer' | 'reveal' }
+  | { kind: 'results' }
