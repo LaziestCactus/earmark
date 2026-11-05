@@ -22,20 +22,25 @@ function useHash(): string {
 export default function App() {
   const hash = useHash()
   const playground = hash === '#playground'
+  const testMode = hash === '#test'
+
   return (
     <main className="app">
       <header>
         <h1>Earmark</h1>
         <nav className="nav">
-          <a href="#" aria-current={!playground ? 'page' : undefined}>
-            Lesson
+          <a href="#test" aria-current={testMode ? 'page' : undefined}>
+            Test
+          </a>
+          <a href="#" aria-current={!playground && !testMode ? 'page' : undefined}>
+            Tutorial
           </a>
           <a href="#playground" aria-current={playground ? 'page' : undefined}>
             Playground
           </a>
         </nav>
       </header>
-      {playground ? <Playground /> : <Lesson />}
+      {playground ? <Playground /> : <Lesson mode={testMode ? 'test' : 'tutorial'} />}
     </main>
   )
 }

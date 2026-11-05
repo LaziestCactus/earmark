@@ -7,11 +7,11 @@
  * TODO (Person 4): persist progress in localStorage, limit replays per
  * question (and record the count), keyboard shortcuts (space = play).
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { describePreamble, sonify } from '../audio/sonification.ts'
 import { usePlayer } from '../audio/usePlayer.ts'
 import { getGraph } from '../data/graphs.ts'
-import { QUESTIONS } from '../data/questions.ts'
+import { QUESTIONS, TEST_QUESTIONS } from '../data/questions.ts'
 import { checkAnswer, orderQuestions, scoreAnswers } from '../quiz/quiz.ts'
 import type { AnswerRecord, LessonPhase } from '../types.ts'
 import { GraphReveal } from './GraphReveal.tsx'
@@ -20,12 +20,21 @@ import { ProtocolIntro } from './ProtocolIntro.tsx'
 import { QuestionCard } from './QuestionCard.tsx'
 import { Results } from './Results.tsx'
 
-export function Lesson() {
-  const [questions, setQuestions] = useState(() => orderQuestions(QUESTIONS))
+export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
+  const questionBank = mode === 'test' ? TEST_QUESTIONS : QUESTIONS
+
+  const [questions, setQuestions] = useState(() => orderQuestions(questionBank))
   const [phase, setPhase] = useState<LessonPhase>({ kind: 'intro' })
   const [answers, setAnswers] = useState<AnswerRecord[]>([])
   const [hasListened, setHasListened] = useState(false)
   const player = usePlayer()
+
+  useEffect(() => {
+    setQuestions(orderQuestions(questionBank))
+    setAnswers([])
+    setHasListened(false)
+    setPhase({ kind: 'intro' })
+  }, [questionBank])
 
   const question = phase.kind === 'question' ? questions[phase.index] : null
   const graph = question ? getGraph(question.graphId) : null
@@ -34,7 +43,7 @@ export function Lesson() {
 
   const restart = () => {
     player.stop()
-    setQuestions(orderQuestions(QUESTIONS))
+    setQuestions(orderQuestions(questionBank))
     setAnswers([])
     setHasListened(false)
     setPhase({ kind: 'intro' })
@@ -61,7 +70,7 @@ export function Lesson() {
   }
 
   if (phase.kind === 'intro') {
-    return <ProtocolIntro player={player} onStart={() => goToQuestion(0)} />
+    return <ProtocolIntro player={player} mode={mode} onStart={() => goToQuestion(0)} />
   }
 
   if (phase.kind === 'results') {

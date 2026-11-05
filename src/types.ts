@@ -13,6 +13,9 @@ export interface Point {
   y: number
 }
 
+export type GraphStage = 'tutorial' | 'test'
+export type GraphDifficulty = 'easy' | 'medium' | 'hard'
+
 export interface Graph {
   id: string
   title: string
@@ -22,6 +25,10 @@ export interface Graph {
   unit?: string
   /** Optional labels for the x axis, index-aligned with `points` (e.g. month names). */
   xLabels?: string[]
+  /** Which stage this graph belongs to. */
+  stage?: GraphStage
+  /** Relative challenge level for future scoring / selection. */
+  difficulty?: GraphDifficulty
   points: Point[]
 }
 

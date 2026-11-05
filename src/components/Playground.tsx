@@ -23,7 +23,9 @@ export function Playground() {
 
   return (
     <>
-      <p className="lede">Hear a graph as piano notes. Pick an example, press play, follow the preamble.</p>
+      <p className="lede">
+        Tutorial graphs only: hear each example as piano notes, pick a graph, press play, and follow the preamble.
+      </p>
 
       <section className="picker">
         <label>

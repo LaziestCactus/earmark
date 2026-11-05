@@ -6,7 +6,7 @@
  * (play a short clip, show the graph at the same time), and a
  * "play the reference notes" button.
  */
-import { GRAPHS } from '../data/graphs.ts'
+import { GRAPHS, TEST_GRAPHS } from '../data/graphs.ts'
 import { describePreamble, sonify } from '../audio/sonification.ts'
 import type { Player } from '../audio/usePlayer.ts'
 import { LineChart } from './LineChart.tsx'
@@ -14,12 +14,36 @@ import { LineChart } from './LineChart.tsx'
 interface Props {
   player: Player
   onStart: () => void
+  mode?: 'tutorial' | 'test'
 }
 
-export function ProtocolIntro({ player, onStart }: Props) {
-  const sample = GRAPHS[0]
+export function ProtocolIntro({ player, onStart, mode = 'tutorial' }: Props) {
+  const sample = mode === 'test' ? TEST_GRAPHS[0] : GRAPHS[0]
   const sonification = sonify(sample)
   const busy = player.status !== 'idle'
+
+  if (mode === 'test') {
+    return (
+      <section className="intro">
+        <h2>Test mode</h2>
+        <p>Listen to the graph and answer based on what you hear. This round uses the harder assessment examples.</p>
+
+        <LineChart series={sample} activeIndex={player.activeIndex} />
+
+        <div className="controls">
+          <button
+            type="button"
+            onClick={() => (busy ? player.stop() : void player.play(sonification, describePreamble(sonification, sample.unit)))}
+          >
+            {busy ? 'Stop' : 'Play sample'}
+          </button>
+          <button type="button" className="secondary" onClick={onStart}>
+            Start test
+          </button>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="intro">
