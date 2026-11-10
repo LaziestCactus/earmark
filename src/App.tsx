@@ -40,7 +40,7 @@ export default function App() {
           </a>
         </nav>
       </header>
-      {playground ? <Playground /> : <Lesson mode={testMode ? 'test' : 'tutorial'} />}
+      {playground ? <Playground /> : <Lesson key={testMode ? 'test' : 'tutorial'} mode={testMode ? 'test' : 'tutorial'} />}
     </main>
   )
 }

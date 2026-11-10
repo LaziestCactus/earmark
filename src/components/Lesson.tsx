@@ -7,10 +7,11 @@
  * TODO (Person 4): persist progress in localStorage, limit replays per
  * question (and record the count), keyboard shortcuts (space = play).
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { describePreamble, sonify } from '../audio/sonification.ts'
+import { speak } from '../audio/speech.ts'
 import { usePlayer } from '../audio/usePlayer.ts'
-import { getGraph } from '../data/graphs.ts'
+import { getGraph, xTickLabel } from '../data/graphs.ts'
 import { QUESTIONS, TEST_QUESTIONS } from '../data/questions.ts'
 import { checkAnswer, orderQuestions, scoreAnswers } from '../quiz/quiz.ts'
 import type { AnswerRecord, LessonPhase } from '../types.ts'
@@ -28,13 +29,6 @@ export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
   const [answers, setAnswers] = useState<AnswerRecord[]>([])
   const [hasListened, setHasListened] = useState(false)
   const player = usePlayer()
-
-  useEffect(() => {
-    setQuestions(orderQuestions(questionBank))
-    setAnswers([])
-    setHasListened(false)
-    setPhase({ kind: 'intro' })
-  }, [questionBank])
 
   const question = phase.kind === 'question' ? questions[phase.index] : null
   const graph = question ? getGraph(question.graphId) : null
@@ -58,8 +52,18 @@ export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
 
   const play = async () => {
     if (!sonification || !graph) return
-    await player.play(sonification, describePreamble(sonification, graph.unit))
+    await player.play(sonification, describePreamble(sonification, graph))
     setHasListened(true)
+  }
+
+  /** Stop, then say where we were: "Apr, 14.8". */
+  const stopAndAnnounce = () => {
+    const note = sonification?.notes[player.activeIndex]
+    player.stop()
+    if (note && graph) {
+      const point = graph.points[note.pointIndex]
+      void speak(`${xTickLabel(graph, note.pointIndex)}, ${Number(point.y.toFixed(2))}`)
+    }
   }
 
   const answer = (chosenIndex: number) => {
@@ -79,13 +83,14 @@ export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
 
   if (!question || !graph || !sonification) return null
   const busy = player.status !== 'idle'
+  const activePoint = sonification.notes[player.activeIndex]?.pointIndex ?? -1
 
   return (
     <section className="lesson">
       <ProgressBar current={phase.index + 1} total={questions.length} />
 
       <div className="controls">
-        <button type="button" onClick={busy ? player.stop : () => void play()}>
+        <button type="button" onClick={busy ? stopAndAnnounce : () => void play()}>
           {busy ? 'Stop' : hasListened ? 'Replay' : 'Play'}
         </button>
         {!hasListened && phase.stage !== 'reveal' && <span className="hint">Listen first, then answer.</span>}
@@ -100,7 +105,7 @@ export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
 
       {phase.stage === 'reveal' && (
         <>
-          <GraphReveal graph={graph} sonification={sonification} activeIndex={player.activeIndex} />
+          <GraphReveal graph={graph} sonification={sonification} activeIndex={activePoint} />
           <button type="button" onClick={() => goToQuestion(phase.index + 1)}>
             {phase.index + 1 < questions.length ? 'Next question' : 'See results'}
           </button>

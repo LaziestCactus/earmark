@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { describePreamble, midiToName, nameToMidi, niceStep, sonify, WHOLE_STEP } from './sonification.ts'
+import { describePreamble, midiToName, nameToMidi, niceStep, preambleNumbers, sonify } from './sonification.ts'
 import { DEFAULT_OPTIONS } from '../types.ts'
 import type { Graph } from '../types.ts'
 
 const series = (ys: number[], id = 's'): Graph => ({
   id,
   title: id,
-  xLabel: 'x',
-  yLabel: 'y',
+  xLabel: 'Month',
+  yLabel: 'Rate',
+  unit: '%',
   points: ys.map((y, x) => ({ x, y })),
 })
 
@@ -36,12 +37,27 @@ describe('niceStep', () => {
 describe('sonify', () => {
   const s = sonify(series([10, 20, 15, 40, 5]))
 
-  it('produces one note per point, evenly spaced across the duration', () => {
-    expect(s.notes).toHaveLength(5)
+  it('resamples to short notes spanning the whole duration', () => {
+    const target = DEFAULT_OPTIONS.durationMs / DEFAULT_OPTIONS.noteMs
+    expect(s.notes.length).toBeGreaterThanOrEqual(target * 0.9)
+    expect(s.notes.length).toBeLessThanOrEqual(target * 1.2)
     expect(s.notes[0].startMs).toBe(0)
-    expect(s.notes[4].startMs + s.notes[4].durationMs).toBeLessThanOrEqual(s.durationMs)
-    const slot = s.durationMs / 5
-    s.notes.forEach((n, i) => expect(n.startMs).toBeCloseTo(i * slot))
+    const last = s.notes[s.notes.length - 1]
+    expect(last.startMs + last.durationMs).toBeLessThanOrEqual(s.durationMs)
+    expect(s.notes[0].pointIndex).toBe(0)
+    expect(last.pointIndex).toBe(4)
+  })
+
+  it('never has fewer notes than data points', () => {
+    const dense = sonify(series(Array.from({ length: 200 }, (_, i) => i)))
+    expect(dense.notes.length).toBeGreaterThanOrEqual(200)
+  })
+
+  it('interpolates between points and still sounds every data point exactly', () => {
+    const two = sonify(series([0, 10]), { noteMs: 3000, durationMs: 6000 })
+    expect(two.notes.map((n) => n.value)).toEqual([0, 5, 10])
+    const exact = s.notes.filter((n) => Number.isInteger(n.x)).map((n) => n.value)
+    expect(exact).toEqual([10, 20, 15, 40, 5])
   })
 
   it('anchors the trough to the lowest allowed note', () => {
@@ -49,12 +65,17 @@ describe('sonify', () => {
     expect(s.trough.midi).toBe(DEFAULT_OPTIONS.lowestMidi)
   })
 
-  it('keeps every note inside the comfortable range and on the whole-step grid', () => {
+  it('keeps every note inside the comfortable range on a chromatic grid', () => {
     for (const n of s.notes) {
       expect(n.midi).toBeGreaterThanOrEqual(DEFAULT_OPTIONS.lowestMidi)
       expect(n.midi).toBeLessThanOrEqual(DEFAULT_OPTIONS.highestMidi)
-      expect((n.midi - DEFAULT_OPTIONS.lowestMidi) % WHOLE_STEP).toBe(0)
+      expect(Number.isInteger(n.midi)).toBe(true)
     }
+  })
+
+  it('supports a whole-step grid when asked', () => {
+    const ws = sonify(series([10, 20, 15, 40, 5]), { stepSemitones: 2 })
+    for (const n of ws.notes) expect((n.midi - DEFAULT_OPTIONS.lowestMidi) % 2).toBe(0)
   })
 
   it('reports start/peak anchors consistently with the notes', () => {
@@ -72,23 +93,24 @@ describe('sonify', () => {
   it('handles a flat series', () => {
     const flat = sonify(series([3, 3, 3]))
     expect(new Set(flat.notes.map((n) => n.midi)).size).toBe(1)
-    expect(flat.unitsPerWholeStep).toBe(1)
+    expect(flat.unitsPerStep).toBe(1)
   })
 
-  it('respects an explicit unitsPerWholeStep', () => {
-    const fixed = sonify(series([0, 10, 20]), { unitsPerWholeStep: 10 })
-    expect(fixed.notes.map((n) => n.midi)).toEqual([48, 50, 52])
+  it('respects an explicit unitsPerStep', () => {
+    const fixed = sonify(series([0, 10, 20]), { unitsPerStep: 10, noteMs: 6000 })
+    expect(fixed.notes.map((n) => n.midi)).toEqual([48, 49, 50])
   })
 
   it('rejects an empty series', () => {
     expect(() => sonify(series([]))).toThrow()
   })
 
-  it('writes a preamble that mentions every anchor', () => {
-    const text = describePreamble(s, '°')
-    expect(text).toContain('6 seconds')
-    expect(text).toContain(s.trough.name)
-    expect(text).toContain(s.peak.name)
-    expect(text).toContain(s.start.name)
+  it('writes a terse preamble: axes, then numbers in protocol order', () => {
+    const g = series([10, 20, 15, 40, 5])
+    expect(preambleNumbers(s)).toBe('6, 5, 40, 10, 1')
+    expect(describePreamble(s, g)).toBe('Month by Rate, %. 6, 5, 40, 10, 1.')
+    const verbose = describePreamble(s, g, true)
+    expect(verbose).toContain(s.trough.name)
+    expect(verbose).toContain(s.peak.name)
   })
 })

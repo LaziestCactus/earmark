@@ -43,20 +43,26 @@ export interface ProtocolOptions {
   lowestMidi: number
   /** Highest MIDI note allowed (the "comfortable range" ceiling). 84 = C6. */
   highestMidi: number
-  /** Fraction of each note slot left silent so repeated notes are distinct. */
+  /** Fraction of each note slot left silent. Small = legato, near-continuous. */
   gapRatio: number
+  /** Pitch grid in semitones: 1 = chromatic, 2 = whole steps. */
+  stepSemitones: number
+  /** Length of one note. The graph is resampled so notes are this short. */
+  noteMs: number
   /**
-   * Data units per whole step. Leave undefined to let the protocol pick a
+   * Data units per pitch step. Leave undefined to let the protocol pick a
    * "nice" value (1, 2, 2.5, 5 × 10^k) that fits the graph in range.
    */
-  unitsPerWholeStep?: number
+  unitsPerStep?: number
 }
 
 export const DEFAULT_OPTIONS: ProtocolOptions = {
   durationMs: 6000,
   lowestMidi: 48, // C3
   highestMidi: 84, // C6
-  gapRatio: 0.1,
+  gapRatio: 0.05,
+  stepSemitones: 1,
+  noteMs: 120,
 }
 
 export interface Anchor {
@@ -67,8 +73,13 @@ export interface Anchor {
 }
 
 export interface Note {
-  /** Index of the data point this note represents. */
+  /** Position in the note sequence. */
   index: number
+  /** Nearest data point (for highlighting and for "value at this moment"). */
+  pointIndex: number
+  /** Interpolated x along the graph. */
+  x: number
+  /** Interpolated y: what this note's pitch encodes. */
   value: number
   midi: number
   name: string
@@ -83,7 +94,7 @@ export interface Sonification {
   trough: Anchor
   peak: Anchor
   start: Anchor
-  unitsPerWholeStep: number
+  unitsPerStep: number
   notes: Note[]
 }
 

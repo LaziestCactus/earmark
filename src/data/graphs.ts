@@ -74,84 +74,94 @@ export const TUTORIAL_GRAPHS: Graph[] = [
   }),
 ]
 
+/**
+ * Test graphs. Each is framed as a real-world series with real axes and
+ * units, because the listener is told "x by y" before the numbers and the
+ * questions ask about actual values. The values are illustrative, not sourced.
+ */
+const HOURS = ['1am', '2am', '3am', '4am', '5am', '6am', '7am', '8am', '9am', '10am', '11am', 'noon']
+const WEEKS = Array.from({ length: 12 }, (_, i) => `Week ${i + 1}`)
+const QUARTERS = ['2021 Q1', '2021 Q2', '2021 Q3', '2021 Q4', '2022 Q1', '2022 Q2', '2022 Q3', '2022 Q4', '2023 Q1', '2023 Q2', '2023 Q3', '2023 Q4']
+const PM_HOURS = ['noon', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm', '11pm']
+
 export const TEST_GRAPHS: Graph[] = [
   graph(
     'test-ambiguous-rise',
-    'Ambiguous rise with a plateau',
+    'Monthly active users, 2023',
     [42, 44, 46, 48, 49, 50, 52, 53, 52, 51, 54, 58],
-    { xLabel: 'Sample', yLabel: 'Value', xLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] },
+    { xLabel: 'Month', yLabel: 'Active users', unit: 'k', xLabels: MONTHS },
     'test',
     'hard',
   ),
   graph(
     'test-double-oscillation',
-    'Oscillation with a late surge',
+    'Average daily high, Austin, 12 weeks of spring',
     [66, 62, 58, 60, 65, 63, 57, 61, 69, 74, 72, 77],
-    { xLabel: 'Week', yLabel: 'Value', xLabels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12'] },
+    { xLabel: 'Week', yLabel: 'Temperature', unit: '°F', xLabels: WEEKS },
     'test',
     'hard',
   ),
   graph(
     'test-peak-trough',
-    'Peak, trough, and recovery',
+    'Air quality index, 12 days in August',
     [30, 34, 39, 45, 42, 38, 41, 47, 50, 46, 40, 43],
-    { xLabel: 'Day', yLabel: 'Signal' },
+    { xLabel: 'Day', yLabel: 'AQI', xLabels: Array.from({ length: 12 }, (_, i) => `Aug ${i + 1}`) },
     'test',
     'hard',
   ),
   graph(
     'test-saw-bias',
-    'Sawtooth with downward bias',
+    'Consumer confidence index, 2022',
     [80, 84, 79, 83, 88, 82, 86, 90, 85, 81, 78, 75],
-    { xLabel: 'Sample', yLabel: 'Index' },
+    { xLabel: 'Month', yLabel: 'Confidence index', xLabels: MONTHS },
     'test',
     'hard',
   ),
   graph(
     'test-recovery-shock',
-    'Shock, recovery, then flattening',
+    'Airline share price, 2020',
     [95, 88, 81, 76, 79, 86, 92, 96, 93, 90, 89, 90],
-    { xLabel: 'Month', yLabel: 'Price', unit: '$', xLabels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+    { xLabel: 'Month', yLabel: 'Share price', unit: '$', xLabels: MONTHS },
     'test',
     'hard',
   ),
   graph(
     'test-drift-then-jump',
-    'Slow drift, then sharp jump',
+    'Website visitors per minute, overnight to noon',
     [35, 37, 36, 38, 39, 41, 43, 42, 46, 52, 51, 50],
-    { xLabel: 'Hour', yLabel: 'Value', xLabels: ['1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a', '9a', '10a', '11a', '12p'] },
+    { xLabel: 'Hour', yLabel: 'Visitors per minute', xLabels: HOURS },
     'test',
     'hard',
   ),
   graph(
     'test-multi-peak',
-    'Multiple local peaks',
+    'Quarterly revenue, 2021 to 2023',
     [58, 60, 57, 62, 61, 66, 64, 59, 63, 70, 68, 64],
-    { xLabel: 'Quarter', yLabel: 'Metric', xLabels: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12'] },
+    { xLabel: 'Quarter', yLabel: 'Revenue', unit: '$M', xLabels: QUARTERS },
     'test',
     'hard',
   ),
   graph(
     'test-flat-then-surge',
-    'Flat then surging climb',
+    'Search interest for "flu symptoms", October to December',
     [50, 51, 49, 50, 52, 51, 54, 59, 65, 70, 72, 76],
-    { xLabel: 'Week', yLabel: 'Value', xLabels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'W12'] },
+    { xLabel: 'Week', yLabel: 'Search interest', xLabels: WEEKS },
     'test',
     'hard',
   ),
   graph(
     'test-final-dip',
-    'Mostly steady with a final dip',
+    'Relative humidity, noon to midnight',
     [70, 72, 71, 73, 74, 75, 72, 71, 70, 69, 68, 65],
-    { xLabel: 'Sample', yLabel: 'Value' },
+    { xLabel: 'Hour', yLabel: 'Humidity', unit: '%', xLabels: PM_HOURS },
     'test',
     'hard',
   ),
   graph(
     'test-reverse-wave',
-    'Wave with asymmetric troughs',
+    'Bitcoin price, 12 weeks in late 2021',
     [60, 64, 62, 58, 57, 61, 68, 65, 59, 55, 60, 67],
-    { xLabel: 'Step', yLabel: 'Signal' },
+    { xLabel: 'Week', yLabel: 'Price', unit: 'k$', xLabels: WEEKS },
     'test',
     'hard',
   ),

@@ -1,14 +1,8 @@
 /**
- * The 10 lesson questions. Each one references a graph by id; the listener
- * hears that graph's sonification, answers, then sees the graph revealed.
+ * Tutorial questions (shape recognition on simple graphs) and test questions
+ * (concrete values on realistic graphs). Each references a graph by id; the
+ * listener hears that graph's sonification, answers, then sees the graph.
  * Owner: Person 3.
- *
- * TODO (Person 3): replace the questions marked PLACEHOLDER with the real
- * question bank. Aim for a mix of question types:
- *   - trend      ("Does it go up or down overall?")
- *   - extremum   ("Where is the peak?")
- *   - comparison ("Is the end higher than the start?")
- *   - shape      ("Which description matches what you heard?")
  */
 import type { Question } from '../types.ts'
 
@@ -19,7 +13,7 @@ export const QUESTIONS: Question[] = [
     prompt: 'What is the overall trend of this graph?',
     choices: ['Steadily rising', 'Steadily falling', 'Flat', 'Up then down'],
     correctIndex: 0,
-    explanation: 'Every note is a whole step above the previous one, so the value rises steadily.',
+    explanation: 'Every note is a step above the previous one, so the value rises steadily.',
   },
   {
     id: 'q2',
@@ -92,85 +86,89 @@ export const QUESTIONS: Question[] = [
   },
 ]
 
+/**
+ * Test questions ask about actual values and positions, the way a reader of
+ * the real chart would be asked. Correct answers are spread across positions.
+ */
 export const TEST_QUESTIONS: Question[] = [
   {
     id: 't1',
     graphId: 'test-ambiguous-rise',
-    prompt: 'Which description best matches this graph?',
-    choices: ['A gradual rise with a brief plateau and late recovery', 'A steady drop', 'A flat line', 'Two sharp spikes'],
-    correctIndex: 0,
-    explanation: 'The graph trends upward overall, but the middle section flattens and then rises again.',
+    prompt: 'Which month had the most active users?',
+    choices: ['August', 'October', 'November', 'December'],
+    correctIndex: 3,
+    explanation: 'Users climb most of the year, dip slightly in Sep and Oct, then finish at the high of 58k in December.',
   },
   {
     id: 't2',
     graphId: 'test-double-oscillation',
-    prompt: 'What is the main shape of the chart?',
-    choices: ['A wave with a late surge', 'A constant line', 'A single sudden jump', 'Steady decline'],
-    correctIndex: 0,
-    explanation: 'The values oscillate across the middle of the sequence and then finish with a strong late rise.',
+    prompt: 'What was the high in the final week?',
+    choices: ['57 °F', '67 °F', '72 °F', '77 °F'],
+    correctIndex: 3,
+    explanation: 'The preamble gives the highest value as 77, and the clip ends on that highest note.',
   },
   {
     id: 't3',
     graphId: 'test-peak-trough',
-    prompt: 'What happens after the middle of the graph?',
-    choices: ['It peaks, falls, and then recovers', 'It rises sharply', 'It keeps rising forever', 'It oscillates without recovery'],
-    correctIndex: 0,
-    explanation: 'The graph rises to a peak, dips dramatically, and then settles back upward.',
+    prompt: 'On which day was air quality worst (highest AQI)?',
+    choices: ['Aug 4', 'Aug 9', 'Aug 12', 'Aug 1'],
+    correctIndex: 1,
+    explanation: 'There are two rises. The second one goes higher, peaking at 50 on Aug 9.',
   },
   {
     id: 't4',
     graphId: 'test-saw-bias',
-    prompt: 'Where is the strongest point in the sequence?',
-    choices: ['It trends upward overall but with jagged steps', 'At the very start', 'At the very end', 'It never changes'],
-    correctIndex: 0,
-    explanation: 'The line repeatedly jumps upward and downward, but the overall pattern remains biased upward.',
+    prompt: 'How did consumer confidence end the year compared with January?',
+    choices: ['Higher', 'Lower', 'About the same'],
+    correctIndex: 1,
+    explanation: 'It started at 80, bounced up and down, and finished at 75. The last note is below the first.',
   },
   {
     id: 't5',
     graphId: 'test-recovery-shock',
-    prompt: 'Which statement best describes the graph?',
-    choices: ['A sharp drop followed by recovery', 'It rises steadily', 'It is completely flat', 'It only drops at the end'],
-    correctIndex: 0,
-    explanation: 'There is a steep initial shock, then a rebound and eventual flattening near the end.',
+    prompt: 'In which month was the share price lowest?',
+    choices: ['February', 'April', 'June', 'November'],
+    correctIndex: 1,
+    explanation: 'The price falls for the first four months, bottoms at $76 in April, then recovers.',
   },
   {
     id: 't6',
     graphId: 'test-drift-then-jump',
-    prompt: 'How would you summarize this pattern?',
-    choices: ['Steady drift, then a sharp jump', 'Constant decline', 'One single peak', 'Alternating flat segments'],
-    correctIndex: 0,
-    explanation: 'The graph remains fairly steady for most of the sequence and then jumps upward near the end.',
+    prompt: 'Roughly how many visitors per minute were there at 10 am?',
+    choices: ['35', '40', '52', '60'],
+    correctIndex: 2,
+    explanation: 'Traffic drifts up slowly overnight, then jumps between 9 and 10 am to its high of 52.',
   },
   {
     id: 't7',
     graphId: 'test-multi-peak',
-    prompt: 'What is the best summary of this pattern?',
-    choices: ['Several local peaks with an overall upward drift', 'A straight line', 'A single sharp increase', 'A smooth downward trend'],
-    correctIndex: 0,
-    explanation: 'There are several wave-like rises and dips, but the overall move is upward.',
+    prompt: 'Which quarter had the highest revenue?',
+    choices: ['2021 Q4', '2022 Q2', '2023 Q2', '2023 Q4'],
+    correctIndex: 2,
+    explanation: 'There are several local peaks. The highest, $70M, is in 2023 Q2, three notes from the end.',
   },
   {
     id: 't8',
     graphId: 'test-flat-then-surge',
-    prompt: 'What is the overall direction of this chart?',
-    choices: ['Flat early, then a strong upward surge', 'Mostly falling throughout', 'Flat all the way', 'Random and chaotic'],
-    correctIndex: 0,
-    explanation: 'The series stays relatively level before climbing sharply near the end.',
+    prompt: 'In which week did searches start climbing sharply?',
+    choices: ['Week 2', 'Week 5', 'Week 8', 'Week 11'],
+    correctIndex: 2,
+    explanation: 'The first seven weeks hover around 50. From week 8 the notes rise every week to 76.',
   },
   {
     id: 't9',
     graphId: 'test-final-dip',
-    prompt: 'Which description fits this graph best?',
-    choices: ['Mostly steady with a late dip', 'A single peak then flat line', 'A steady decline', 'A perfect sine wave'],
-    correctIndex: 0,
-    explanation: 'Most of the graph stays near a stable level, but it dips down near the finish.',
+    prompt: 'What was the humidity at 11 pm?',
+    choices: ['60%', '65%', '70%', '75%'],
+    correctIndex: 1,
+    explanation: 'Humidity peaks at 75% around 5 pm and slides to 65% by 11 pm, the lowest value and the last note.',
   },
   {
     id: 't10',
     graphId: 'test-reverse-wave',
-    prompt: 'When does the graph most clearly change direction?',
-    choices: ['Around the middle and late in the sequence', 'At the very beginning', 'At the very end', 'It never changes direction'],
-    correctIndex: 0,
-    explanation: 'The graph alternates between upward and downward movement, especially in the middle and late stages.',
+    prompt: 'How many times did the price fall and then recover?',
+    choices: ['Once', 'Twice', 'Three times'],
+    correctIndex: 1,
+    explanation: 'Two troughs: 57k in week 5 and 55k in week 10, each followed by a recovery.',
   },
 ]

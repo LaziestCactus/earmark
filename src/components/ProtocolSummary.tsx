@@ -12,7 +12,7 @@ export function ProtocolSummary({ sonification: s, unit = '' }: Props) {
     ['Trough', `${s.trough.value}${unit} → ${s.trough.name}`],
     ['Peak', `${s.peak.value}${unit} → ${s.peak.name}`],
     ['Start', `${s.start.value}${unit} → ${s.start.name}`],
-    ['Whole step', `${s.unitsPerWholeStep}${unit}`],
+    ['Per step', `${s.unitsPerStep}${unit}`],
   ]
   return (
     <table className="summary" aria-label="Protocol preamble">

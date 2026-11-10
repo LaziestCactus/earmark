@@ -23,8 +23,8 @@ export function NoteTable({ sonification, activeIndex, xTickLabel = String }: Pr
         {sonification.notes.map((n) => (
           <tr key={n.index} className={n.index === activeIndex ? 'notes__row--active' : ''}>
             <td>{n.index + 1}</td>
-            <td>{xTickLabel(n.index)}</td>
-            <td>{n.value}</td>
+            <td>{xTickLabel(n.pointIndex)}</td>
+            <td>{Number(n.value.toFixed(2))}</td>
             <td>{n.name}</td>
             <td>{(n.startMs / 1000).toFixed(2)}</td>
           </tr>

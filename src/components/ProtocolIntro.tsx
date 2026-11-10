@@ -7,7 +7,7 @@
  * "play the reference notes" button.
  */
 import { GRAPHS, TEST_GRAPHS } from '../data/graphs.ts'
-import { describePreamble, sonify } from '../audio/sonification.ts'
+import { describePreamble, preambleNumbers, sonify } from '../audio/sonification.ts'
 import type { Player } from '../audio/usePlayer.ts'
 import { LineChart } from './LineChart.tsx'
 
@@ -21,19 +21,25 @@ export function ProtocolIntro({ player, onStart, mode = 'tutorial' }: Props) {
   const sample = mode === 'test' ? TEST_GRAPHS[0] : GRAPHS[0]
   const sonification = sonify(sample)
   const busy = player.status !== 'idle'
+  const activePoint = sonification.notes[player.activeIndex]?.pointIndex ?? -1
 
   if (mode === 'test') {
     return (
       <section className="intro">
         <h2>Test mode</h2>
-        <p>Listen to the graph and answer based on what you hear. This round uses the harder assessment examples.</p>
+        <p>
+          Each clip starts by naming the axes, then gives the protocol numbers in this order: length in seconds,
+          lowest value, highest value, starting value, value per step. Then the notes play. Press Stop at any time
+          to hear the value at that moment.
+        </p>
+        <p className="preamble">{describePreamble(sonification, sample)}</p>
 
-        <LineChart series={sample} activeIndex={player.activeIndex} />
+        <LineChart series={sample} activeIndex={activePoint} />
 
         <div className="controls">
           <button
             type="button"
-            onClick={() => (busy ? player.stop() : void player.play(sonification, describePreamble(sonification, sample.unit)))}
+            onClick={() => (busy ? player.stop() : void player.play(sonification, describePreamble(sonification, sample)))}
           >
             {busy ? 'Stop' : 'Play sample'}
           </button>
@@ -49,24 +55,28 @@ export function ProtocolIntro({ player, onStart, mode = 'tutorial' }: Props) {
     <section className="intro">
       <h2>How to listen</h2>
       <p>
-        Each graph is played as a short sequence of piano notes. Higher values are higher notes.
-        Before the notes you will hear a short preamble:
+        Each graph is played as a run of short piano notes. Higher values are higher notes, one semitone per step.
+        Before the notes you hear the axes, then five numbers in a fixed order:
       </p>
-      <ul>
-        <li>how long the clip is,</li>
-        <li>the lowest value and the note it plays as,</li>
-        <li>the highest value and the note it plays as,</li>
-        <li>the starting value and its note,</li>
-        <li>how much the value changes per whole step.</li>
-      </ul>
-      <p className="preamble">{describePreamble(sonification, sample.unit)}</p>
+      <ol>
+        <li>length of the clip in seconds,</li>
+        <li>the lowest value,</li>
+        <li>the highest value,</li>
+        <li>the starting value,</li>
+        <li>how much the value changes per step.</li>
+      </ol>
+      <p className="preamble">{describePreamble(sonification, sample, true)}</p>
+      <p>
+        In the test you only hear the short form: <strong>{preambleNumbers(sonification)}</strong>. Press Stop
+        during playback to hear the value at that moment.
+      </p>
 
-      <LineChart series={sample} activeIndex={player.activeIndex} />
+      <LineChart series={sample} activeIndex={activePoint} />
 
       <div className="controls">
         <button
           type="button"
-          onClick={() => (busy ? player.stop() : void player.play(sonification, describePreamble(sonification, sample.unit)))}
+          onClick={() => (busy ? player.stop() : void player.play(sonification, describePreamble(sonification, sample, true)))}
         >
           {busy ? 'Stop' : 'Play example'}
         </button>

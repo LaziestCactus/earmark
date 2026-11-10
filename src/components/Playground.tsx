@@ -18,7 +18,7 @@ export function Playground() {
 
   const series = EXAMPLES.find((e) => e.id === exampleId) ?? EXAMPLES[0]
   const sonification = useMemo(() => sonify(series), [series])
-  const preamble = describePreamble(sonification, series.unit)
+  const preamble = describePreamble(sonification, series)
   const tick = (x: number) => xTickLabel(series, x)
 
   return (
@@ -48,7 +48,7 @@ export function Playground() {
 
       <section className="stage">
         <h2>{series.title}</h2>
-        <LineChart series={series} activeIndex={player.activeIndex} xTickLabel={tick} />
+        <LineChart series={series} activeIndex={sonification.notes[player.activeIndex]?.pointIndex ?? -1} xTickLabel={tick} />
         <PlayerControls
           status={player.status}
           speakPreamble={speakPreamble}

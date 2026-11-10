@@ -6,6 +6,7 @@
  *
  * TODO (Person 2):
  *  - decide trough-anchored (current) vs start-anchored pitch mapping
+ *  - tune noteMs / gapRatio for the most continuous feel
  *  - decide fixed clip length vs fixed time per point
  *  - optional glissando / continuous mode for the comparison condition
  */
@@ -17,8 +18,6 @@ import type { Anchor, Graph, Note, ProtocolOptions, Sonification } from '../type
 // ---------------------------------------------------------------------------
 
 const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
-
-export const WHOLE_STEP = 2 // semitones
 
 export function midiToName(midi: number): string {
   const octave = Math.floor(midi / 12) - 1
@@ -59,25 +58,36 @@ export function niceStep(min: number): number {
   return 10 * base // unreachable, keeps TS happy
 }
 
+/** Linear interpolation of the graph at fractional x (in point-index units). */
+function sampleAt(points: Graph['points'], t: number): number {
+  const i = Math.min(points.length - 2, Math.max(0, Math.floor(t)))
+  const frac = t - i
+  if (points.length === 1) return points[0].y
+  return points[i].y + (points[i + 1].y - points[i].y) * frac
+}
+
 /**
  * Map a graph to the Earmark protocol.
  *
- * Pitch mapping (v0):
+ * Pitch mapping (v1):
  *   - The trough is anchored to `lowestMidi`.
- *   - Every value is quantised to the whole-step grid above the trough:
- *       midi = lowestMidi + 2 * round((y - trough) / unitsPerWholeStep)
- *   - `unitsPerWholeStep` is chosen so the peak still fits under `highestMidi`.
+ *   - Every value is quantised to a `stepSemitones` grid above the trough
+ *     (default 1 = chromatic):
+ *       midi = lowestMidi + stepSemitones * round((y - trough) / unitsPerStep)
+ *   - `unitsPerStep` is chosen so the peak still fits under `highestMidi`.
  *
- * Timing (v0):
- *   - Points are spaced evenly across `durationMs`.
+ * Timing (v1):
+ *   - The graph is resampled to roughly one note every `noteMs` across
+ *     `durationMs`, interpolating linearly between data points so it sounds
+ *     continuous. Every original data point is still sounded exactly.
  *   - Each note sounds for (1 - gapRatio) of its slot.
  */
 export function sonify(graph: Graph, overrides: Partial<ProtocolOptions> = {}): Sonification {
   const opts: ProtocolOptions = { ...DEFAULT_OPTIONS, ...overrides }
   const { points } = graph
   if (points.length === 0) throw new Error('Cannot sonify an empty graph')
-  if (opts.highestMidi - opts.lowestMidi < WHOLE_STEP) {
-    throw new Error('Pitch range must span at least one whole step')
+  if (opts.highestMidi - opts.lowestMidi < opts.stepSemitones) {
+    throw new Error('Pitch range must span at least one step')
   }
 
   const ys = points.map((p) => p.y)
@@ -85,24 +95,33 @@ export function sonify(graph: Graph, overrides: Partial<ProtocolOptions> = {}): 
   const peakValue = Math.max(...ys)
   const range = peakValue - troughValue
 
-  const stepsAvailable = Math.floor((opts.highestMidi - opts.lowestMidi) / WHOLE_STEP)
-  const unitsPerWholeStep = opts.unitsPerWholeStep ?? niceStep(range / stepsAvailable)
+  const stepsAvailable = Math.floor((opts.highestMidi - opts.lowestMidi) / opts.stepSemitones)
+  const unitsPerStep = opts.unitsPerStep ?? niceStep(range / stepsAvailable)
 
   const toMidi = (y: number): number => {
-    const steps = Math.round((y - troughValue) / unitsPerWholeStep)
-    return Math.min(opts.highestMidi, opts.lowestMidi + steps * WHOLE_STEP)
+    const steps = Math.round((y - troughValue) / unitsPerStep)
+    return Math.min(opts.highestMidi, opts.lowestMidi + steps * opts.stepSemitones)
   }
   const anchor = (value: number): Anchor => {
     const midi = toMidi(value)
     return { value, midi, name: midiToName(midi) }
   }
 
-  const slotMs = opts.durationMs / points.length
-  const notes: Note[] = points.map((p, index) => {
-    const midi = toMidi(p.y)
+  // `perSegment` notes between consecutive data points, so every data point
+  // (including the peak and trough) is sounded exactly, never only interpolated.
+  const segments = Math.max(1, points.length - 1)
+  const perSegment = Math.max(1, Math.round(opts.durationMs / opts.noteMs / segments))
+  const count = points.length === 1 ? 1 : perSegment * segments + 1
+  const slotMs = opts.durationMs / count
+  const notes: Note[] = Array.from({ length: count }, (_, index) => {
+    const t = index / perSegment
+    const value = sampleAt(points, t)
+    const midi = toMidi(value)
     return {
       index,
-      value: p.y,
+      pointIndex: Math.round(t),
+      x: t,
+      value,
       midi,
       name: midiToName(midi),
       startMs: index * slotMs,
@@ -116,23 +135,39 @@ export function sonify(graph: Graph, overrides: Partial<ProtocolOptions> = {}): 
     trough: anchor(troughValue),
     peak: anchor(peakValue),
     start: anchor(points[0].y),
-    unitsPerWholeStep,
+    unitsPerStep,
     notes,
   }
 }
 
+const fmt = (v: number) => String(Number(v.toFixed(2)))
+
+/** The protocol numbers in fixed order: length, low, high, start, step. */
+export function preambleNumbers(s: Sonification): string {
+  return [s.durationMs / 1000, s.trough.value, s.peak.value, s.start.value, s.unitsPerStep]
+    .map(fmt)
+    .join(', ')
+}
+
 /**
- * The spoken/printed preamble a listener hears before the notes.
+ * What the listener hears before the notes.
+ *
+ * Terse (default, what the test uses): the axes once, then the protocol
+ * numbers in fixed order. "Month by unemployment rate, percent. 6, 3.5, 14.8, 3.6, 0.5."
+ * Verbose: full sentences, for the tutorial intro only.
+ *
  * Keep this the single source of truth for wording so UI and TTS agree.
  */
-export function describePreamble(s: Sonification, unit = ''): string {
-  const fmt = (v: number) => `${Number(v.toFixed(2))}${unit}`
-  const seconds = Number((s.durationMs / 1000).toFixed(1))
+export function describePreamble(s: Sonification, graph: Graph, verbose = false): string {
+  const unit = graph.unit ? `, ${graph.unit}` : ''
+  const axes = `${graph.xLabel} by ${graph.yLabel}${unit}.`
+  if (!verbose) return `${axes} ${preambleNumbers(s)}.`
   return [
-    `This graph plays for ${seconds} seconds.`,
+    axes,
+    `This graph plays for ${fmt(s.durationMs / 1000)} seconds.`,
     `The lowest value, ${fmt(s.trough.value)}, is ${s.trough.name}.`,
     `The highest value, ${fmt(s.peak.value)}, is ${s.peak.name}.`,
     `It starts at ${fmt(s.start.value)}, which is ${s.start.name}.`,
-    `Each whole step is ${fmt(s.unitsPerWholeStep)}.`,
+    `Each step is ${fmt(s.unitsPerStep)}.`,
   ].join(' ')
 }
