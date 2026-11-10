@@ -9,7 +9,7 @@ import { NoteTable } from './NoteTable.tsx'
 import { PlayerControls } from './PlayerControls.tsx'
 import { ProtocolSummary } from './ProtocolSummary.tsx'
 import { GRAPHS as EXAMPLES, xTickLabel } from '../data/graphs.ts'
-import { describePreamble, sonify } from '../audio/sonification.ts'
+import { buildPreamble, preambleText, sonify } from '../audio/sonification.ts'
 
 export function Playground() {
   const [exampleId, setExampleId] = useState(EXAMPLES[0].id)
@@ -18,7 +18,7 @@ export function Playground() {
 
   const series = EXAMPLES.find((e) => e.id === exampleId) ?? EXAMPLES[0]
   const sonification = useMemo(() => sonify(series), [series])
-  const preamble = describePreamble(sonification, series)
+  const preamble = buildPreamble(sonification, series)
   const tick = (x: number) => xTickLabel(series, x)
 
   return (
@@ -62,7 +62,7 @@ export function Playground() {
         <div>
           <h3>Preamble</h3>
           <ProtocolSummary sonification={sonification} unit={series.unit} />
-          <p className="preamble">{preamble}</p>
+          <p className="preamble">{preambleText(preamble)}</p>
         </div>
         <div>
           <h3>Notes</h3>

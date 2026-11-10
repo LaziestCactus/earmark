@@ -94,3 +94,5 @@ button.secondary { background: transparent; color: var(--series); border: 1px so
 .results .score { font-size: 32px; font-weight: 700; margin: 8px 0 16px; }
 .results .ok { color: #15803d; }
 .results .miss { color: var(--accent); }
+.order li { margin-bottom: 4px; }
+.order strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }

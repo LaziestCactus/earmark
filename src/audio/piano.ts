@@ -42,6 +42,14 @@ export function loadPiano(): Promise<Tone.Sampler> {
   return samplerPromise
 }
 
+/** Play one reference note now and resolve when it has sounded for `ms`. */
+export async function playNote(name: string, ms: number): Promise<void> {
+  await Tone.start()
+  const piano = await loadPiano()
+  piano.triggerAttackRelease(name, ms / 1000, Tone.now() + 0.02)
+  await new Promise((r) => setTimeout(r, ms + 60))
+}
+
 export interface Playback {
   /** Stop all scheduled notes and callbacks immediately. */
   stop: () => void

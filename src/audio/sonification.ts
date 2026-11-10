@@ -11,7 +11,7 @@
  *  - optional glissando / continuous mode for the comparison condition
  */
 import { DEFAULT_OPTIONS } from '../types.ts'
-import type { Anchor, Graph, Note, ProtocolOptions, Sonification } from '../types.ts'
+import type { Anchor, Graph, Note, PreambleItem, ProtocolOptions, Sonification } from '../types.ts'
 
 // ---------------------------------------------------------------------------
 // Pitch helpers. MIDI 60 = C4 (middle C).
@@ -142,32 +142,41 @@ export function sonify(graph: Graph, overrides: Partial<ProtocolOptions> = {}): 
 
 const fmt = (v: number) => String(Number(v.toFixed(2)))
 
-/** The protocol numbers in fixed order: length, low, high, start, step. */
-export function preambleNumbers(s: Sonification): string {
-  return [s.durationMs / 1000, s.trough.value, s.peak.value, s.start.value, s.unitsPerStep]
-    .map(fmt)
-    .join(', ')
-}
+/** Length of each reference note in the preamble. */
+const REF_NOTE_MS = 450
 
 /**
- * What the listener hears before the notes.
+ * The packed preamble. No sentences: the listener is taught the order once
+ * and decodes it from then on.
  *
- * Terse (default, what the test uses): the axes once, then the protocol
- * numbers in fixed order. "Month by unemployment rate, percent. 6, 3.5, 14.8, 3.6, 0.5."
- * Verbose: full sentences, for the tutorial intro only.
+ *   axes (spoken once)
+ *   length in seconds
+ *   [lowest note]  lowest value
+ *   [highest note] highest value
+ *   [start note]   start value
+ *   [a note][one step up] value of one step
  *
- * Keep this the single source of truth for wording so UI and TTS agree.
+ * Keep this the single source of truth for the order so UI and audio agree.
  */
-export function describePreamble(s: Sonification, graph: Graph, verbose = false): string {
+export function buildPreamble(s: Sonification, graph: Graph, stepSemitones = DEFAULT_OPTIONS.stepSemitones): PreambleItem[] {
+  const note = (midi: number): PreambleItem => ({ note: midi, name: midiToName(midi), ms: REF_NOTE_MS })
   const unit = graph.unit ? `, ${graph.unit}` : ''
-  const axes = `${graph.xLabel} by ${graph.yLabel}${unit}.`
-  if (!verbose) return `${axes} ${preambleNumbers(s)}.`
   return [
-    axes,
-    `This graph plays for ${fmt(s.durationMs / 1000)} seconds.`,
-    `The lowest value, ${fmt(s.trough.value)}, is ${s.trough.name}.`,
-    `The highest value, ${fmt(s.peak.value)}, is ${s.peak.name}.`,
-    `It starts at ${fmt(s.start.value)}, which is ${s.start.name}.`,
-    `Each step is ${fmt(s.unitsPerStep)}.`,
-  ].join(' ')
+    { say: `${graph.xLabel}. ${graph.yLabel}${unit}.` },
+    { say: fmt(s.durationMs / 1000) },
+    note(s.trough.midi),
+    { say: fmt(s.trough.value) },
+    note(s.peak.midi),
+    { say: fmt(s.peak.value) },
+    note(s.start.midi),
+    { say: fmt(s.start.value) },
+    note(s.trough.midi),
+    note(s.trough.midi + stepSemitones),
+    { say: fmt(s.unitsPerStep) },
+  ]
+}
+
+/** Text rendering of the preamble for the screen: notes in brackets, speech in quotes. */
+export function preambleText(items: PreambleItem[]): string {
+  return items.map((i) => ('say' in i ? i.say : `[${i.name}]`)).join(' ')
 }

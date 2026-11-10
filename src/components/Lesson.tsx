@@ -8,7 +8,7 @@
  * question (and record the count), keyboard shortcuts (space = play).
  */
 import { useMemo, useState } from 'react'
-import { describePreamble, sonify } from '../audio/sonification.ts'
+import { buildPreamble, sonify } from '../audio/sonification.ts'
 import { speak } from '../audio/speech.ts'
 import { usePlayer } from '../audio/usePlayer.ts'
 import { getGraph, xTickLabel } from '../data/graphs.ts'
@@ -52,7 +52,7 @@ export function Lesson({ mode = 'tutorial' }: { mode?: 'tutorial' | 'test' }) {
 
   const play = async () => {
     if (!sonification || !graph) return
-    await player.play(sonification, describePreamble(sonification, graph))
+    await player.play(sonification, buildPreamble(sonification, graph))
     setHasListened(true)
   }
 

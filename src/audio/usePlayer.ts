@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Sonification } from '../types.ts'
-import { playSonification, type Playback } from './piano.ts'
+import type { PreambleItem, Sonification } from '../types.ts'
+import { playNote, playSonification, type Playback } from './piano.ts'
 import { speak, stopSpeaking } from './speech.ts'
 
 export type PlayerStatus = 'idle' | 'speaking' | 'loading' | 'playing'
@@ -9,8 +9,8 @@ export interface Player {
   status: PlayerStatus
   /** Index of the note currently sounding, or -1. */
   activeIndex: number
-  /** Optionally speak `preamble` first, then play the notes. */
-  play: (s: Sonification, preamble?: string) => Promise<void>
+  /** Optionally run the packed `preamble` first, then play the notes. */
+  play: (s: Sonification, preamble?: PreambleItem[]) => Promise<void>
   stop: () => void
 }
 
@@ -30,14 +30,17 @@ export function usePlayer(): Player {
   }, [])
 
   const play = useCallback(
-    async (s: Sonification, preamble?: string) => {
+    async (s: Sonification, preamble?: PreambleItem[]) => {
       stop()
       cancelledRef.current = false
 
       if (preamble) {
         setStatus('speaking')
-        await speak(preamble)
-        if (cancelledRef.current) return
+        for (const item of preamble) {
+          if ('say' in item) await speak(item.say)
+          else await playNote(item.name, item.ms)
+          if (cancelledRef.current) return
+        }
       }
 
       setStatus('loading')

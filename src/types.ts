@@ -87,7 +87,13 @@ export interface Note {
   durationMs: number
 }
 
-/** The preamble (trough / peak / start / step) plus the note sequence. */
+/**
+ * One element of the packed preamble: either a spoken token or a piano note.
+ * The listener learns the fixed order and decodes it without any sentences.
+ */
+export type PreambleItem = { say: string } | { note: number; name: string; ms: number }
+
+/** The preamble anchors (trough / peak / start / step) plus the note sequence. */
 export interface Sonification {
   graphId: string
   durationMs: number

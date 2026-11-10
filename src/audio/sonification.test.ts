@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describePreamble, midiToName, nameToMidi, niceStep, preambleNumbers, sonify } from './sonification.ts'
+import { buildPreamble, midiToName, nameToMidi, niceStep, preambleText, sonify } from './sonification.ts'
 import { DEFAULT_OPTIONS } from '../types.ts'
 import type { Graph } from '../types.ts'
 
@@ -105,12 +105,15 @@ describe('sonify', () => {
     expect(() => sonify(series([]))).toThrow()
   })
 
-  it('writes a terse preamble: axes, then numbers in protocol order', () => {
+  it('packs the preamble as notes and numbers in the fixed order', () => {
     const g = series([10, 20, 15, 40, 5])
-    expect(preambleNumbers(s)).toBe('6, 5, 40, 10, 1')
-    expect(describePreamble(s, g)).toBe('Month by Rate, %. 6, 5, 40, 10, 1.')
-    const verbose = describePreamble(s, g, true)
-    expect(verbose).toContain(s.trough.name)
-    expect(verbose).toContain(s.peak.name)
+    const items = buildPreamble(s, g)
+    expect(preambleText(items)).toBe('Month. Rate, %. 6 [C3] 5 [B5] 40 [F3] 10 [C3] [C#3] 1')
+    // spoken tokens are numbers only, apart from the axes
+    const spoken = items.flatMap((i) => ('say' in i ? [i.say] : []))
+    expect(spoken.slice(1).every((t) => /^-?\d+(\.\d+)?$/.test(t))).toBe(true)
+    // the reference notes are exactly the anchors
+    const notes = items.flatMap((i) => ('note' in i ? [i.note] : []))
+    expect(notes).toEqual([s.trough.midi, s.peak.midi, s.start.midi, s.trough.midi, s.trough.midi + 1])
   })
 })
